@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Login dengan Firebase</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            gap: 20px;
+        }
+        
+        .login-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px 30px;
+            width: 100%;
+        }
+        
+        .admin-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            display: none;
+            width: 100%;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 14px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: #4a6cf7;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+        }
+        
+        .btn {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-full {
+            width: 100%;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+            padding: 10px;
+            background-color: #ffeaea;
+            border-radius: 5px;
+        }
+        
+        .success-message {
+            color: #2ecc71;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+            padding: 10px;
+            background-color: #eaffea;
+            border-radius: 5px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #fff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .admin-header h2 {
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .admin-controls {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .user-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 25px;
+            background-color: #f9f9f9;
+        }
+        
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            background-color: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .user-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-info strong {
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .user-info small {
+            color: #666;
+            display: block;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .edit-form {
+            background: #f0f7ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid #d0e3ff;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .firebase-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .firebase-connected {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .firebase-disconnected {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .admin-controls {
+                flex-direction: column;
+            }
+            
+            .user-actions {
+                flex-direction: column;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="firebaseStatus" class="firebase-status firebase-disconnected">Firebase: Disconnected</div>
+    
+    <div class="container">
+        <div class="login-container" id="loginContainer">
+            <div class="login-header">
+                <h1>Sistem Login dengan Firebase</h1>
+                <p>Masukkan username dan password Anda</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Masukkan username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Masukkan password" required>
+                </div>
+                
+                <button type="submit" class="btn btn-full" id="loginBtn">
+                    <span id="btnText">Login</span>
+                    <div class="loading" id="loadingIndicator">
+                        <div class="spinner"></div> Memproses...
+                    </div>
+                </button>
+                
+                <div class="error-message" id="errorMessage">
+                    Username atau password salah!
+                </div>
+                
+                <div class="success-message" id="successMessage">
+                    Login berhasil! Mengarahkan...
+                </div>
+            </form>
+        </div>
+        
+        <div class="admin-container" id="adminContainer">
+            <div class="admin-header">
+                <h2>Panel Admin - Data Tersimpan di Firebase</h2>
+                <div class="admin-controls">
+                    <button class="btn" id="addUserBtn">Tambah User Baru</button>
+                    <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total User</h3>
+                    <p id="totalUsers">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>User Aktif</h3>
+                    <p id="activeUsers">0</p>
+                </div>
+            </div>
+            
+            <div class="user-list" id="userList">
+                <!-- Daftar user akan ditampilkan di sini -->
+            </div>
+            
+            <div class="edit-form hidden" id="editForm">
+                <h3 id="editFormTitle">Edit User</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editUsername">Username</label>
+                        <input type="text" id="editUsername" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPassword">Password</label>
+                        <input type="text" id="editPassword" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editLink">Link Tujuan</label>
+                    <input type="text" id="editLink" class="form-control" required>
+                </div>
+                <div class="form-row">
+                    <button class="btn" id="saveUserBtn">Simpan Perubahan</button>
+                    <button class="btn btn-secondary" id="cancelEditBtn">Batal</button>
+                </div>
+            </div>
+            
+            <div class="error-message" id="adminErrorMessage"></div>
+            <div class="success-message" id="adminSuccessMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYlptfcH0RPPg7XUUfACViOp-0aaE083Y",
+            authDomain: "pengurus-becdd.firebaseapp.com",
+            databaseURL: "https://pengurus-becdd-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "pengurus-becdd",
+            storageBucket: "pengurus-becdd.firebasestorage.app",
+            messagingSenderId: "982121699705",
+            appId: "1:982121699705:web:6b4ef0ccfc31a7916537a8",
+            measurementId: "G-BQWBNP9F5C"
+        };
+
+        // Inisialisasi Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const analytics = firebase.analytics();
+
+        // Data kredensial default
+        const defaultCredentials = {
+            "ppbhasydc21448": { password: "97428", link: "https://drive.google.com/drive/folders/1h0ngdZoC20BNNXWoQfZ5dGImnyI6O4rE?usp=drive_link" },
+            "ppbhasylr75853": { password: "71506", link: "https://drive.google.com/drive/folders/1Mvo_nGffqqn3FO7sOxdA6JttYgyfTQDR?usp=drive_link" },
+            "ppbhasyjv44012": { password: "64925", link: "https://drive.google.com/drive/folders/1K-oiLjNQxnAsfZo_n9AnajsdCXLwq5Pf?usp=drive_link" },
+            "ppbhasydc11143": { password: "43781", link: "https://drive.google.com/drive/folders/16BRgL0EtvW3Y-Wggy1GvVEMerWKtjsJr?usp=sharing" },
+            "ppbhasyxt52090": { password: "90146", link: "https://drive.google.com/drive/folders/1Qu0dJwqvaljL1siQN9K84vW41s5u6S6G?usp=sharing" },
+            "ppbhasylj96427": { password: "61074", link: "https://drive.google.com/drive/folders/10g5mUJRwID68HFRLCedYBGqk5Lt7Pn4b?usp=sharing" },
+            "ppbhasyek93532": { password: "65931", link: "https://drive.google.com/drive/folders/1FH36OY6Vebk6cF_GNmruN-FqzE3NkPDk?usp=sharing" },
+            "ppbhasywb01136": { password: "72890", link: "https://drive.google.com/drive/folders/1AGA7aNV1dRenFWjjv50xycqZQd_DVUFe?usp=sharing" },
+            "ppbhasyxr26047": { password: "10926", link: "https://drive.google.com/drive/folders/1LWe-zHqpF0N4p1q4aM2Brk-eA_MR5Kag?usp=sharing" },
+            "ppbhasypq89740": { password: "25910", link: "https://drive.google.com/drive/folders/1uuQKtzB9fGWvn8p1ZLU_ZZblXjYxdKWr?usp=sharing" },
+            "ppbhasybh55163": { password: "56021", link: "https://drive.google.com/drive/folders/1kaCOzeG_sW2yspZLBgAvJSWu7fwLjURS?usp=sharing" },
+            "ppbhasyhq56394": { password: "48327", link: "https://drive.google.com/drive/folders/1-tlDbKlPEn2tcimNASfFLHYNedAmdTMx?usp=sharing" },
+            "ppbhasybi03408": { password: "71342", link: "https://drive.google.com/drive/folders/1NcUyJsj984Cv-pOHe22UxrbDYr-7xhf5?usp=sharing" },
+            "ppbhasypb79181": { password: "75413", link: "https://drive.google.com/drive/folders/13yzJinE1MZrOpDj6C6hQy3r3cgX_FyUH?usp=sharing" },
+            "ppbhasyvh48552": { password: "24809", link: "https://drive.google.com/drive/folders/1QMDSCLZZ6510D5pt9ce7P9lYMiWwbf_O?usp=sharing" },
+            "ppbhasytm51673": { password: "34972", link: "https://drive.google.com/drive/folders/1SPi_6GaynF7-tZ0xIkjPK0xJUIa4h3dw?usp=sharing" },
+            "ppbhasysm54117": { password: "40216", link: "https://drive.google.com/drive/folders/1wX2RCSUagmWITyycsi5PhHK3KgZWSyzZ?usp=sharing" },
+            "ppbhasypd55212": { password: "29170", link: "https://drive.google.com/drive/folders/11qt5xX4AzKWhQeWCRsmr9A9QnlGMK4md?usp=sharing" },
+            "ppbhasy1234": { password: "asy12", link: "admin" }
+        };
+
+        // Variabel global untuk credentials
+        let credentials = {};
+
+        // Mendapatkan elemen DOM
+        const loginContainer = document.getElementById('loginContainer');
+        const adminContainer = document.getElementById('adminContainer');
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const userList = document.getElementById('userList');
+        const addUserBtn = document.getElementById('addUserBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const editForm = document.getElementById('editForm');
+        const editFormTitle = document.getElementById('editFormTitle');
+        const editUsername = document.getElementById('editUsername');
+        const editPassword = document.getElementById('editPassword');
+        const editLink = document.getElementById('editLink');
+        const saveUserBtn = document.getElementById('saveUserBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const adminErrorMessage = document.getElementById('adminErrorMessage');
+        const adminSuccessMessage = document.getElementById('adminSuccessMessage');
+        const totalUsers = document.getElementById('totalUsers');
+        const activeUsers = document.getElementById('activeUsers');
+        const firebaseStatus = document.getElementById('firebaseStatus');
+
+        let currentEditUser = null;
+        let isAddingNewUser = false;
+
+        // Fungsi untuk mengupdate status koneksi Firebase
+        function updateFirebaseStatus(connected) {
+            if (connected) {
+                firebaseStatus.textContent = 'Firebase: Connected';
+                firebaseStatus.className = 'firebase-status firebase-connected';
+            } else {
+                firebaseStatus.textContent = 'Firebase: Disconnected';
+                firebaseStatus.className = 'firebase-status firebase-disconnected';
+            }
+        }
+
+        // Fungsi untuk memuat data dari Firebase
+        function loadDataFromFirebase() {
+            const usersRef = database.ref('users');
+            
+            usersRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    credentials = data;
+                    showAdminSuccess('Data berhasil dimuat dari Firebase');
+                } else {
+                    // Jika data kosong, inisialisasi dengan data default
+                    credentials = {...defaultCredentials};
+                    saveDataToFirebase();
+                    showAdminSuccess('Data default berhasil disimpan ke Firebase');
+                }
+                
+                if (adminContainer.style.display !== 'none') {
+                    updateStats();
+                    renderUserList();
+                }
+            }, (error) => {
+                console.error('Error loading data:', error);
+                showAdminError('Gagal memuat data dari Firebase');
+            });
+        }
+
+        // Fungsi untuk menyimpan data ke Firebase
+        function saveDataToFirebase() {
+            const usersRef = database.ref('users');
+            usersRef.set(credentials)
+                .then(() => {
+                    console.log('Data berhasil disimpan ke Firebase');
+                    updateFirebaseStatus(true);
+                })
+                .catch((error) => {
+                    console.error('Error saving data:', error);
+                    updateFirebaseStatus(false);
+                    showAdminError('Gagal menyimpan data ke Firebase');
+                });
+        }
+
+        // Fungsi untuk menampilkan pesan error
+        function showError(message) {
+            errorMessage.textContent = message || 'Username atau password salah!';
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        // Fungsi untuk menampilkan pesan sukses
+        function showSuccess(message) {
+            errorMessage.style.display = 'none';
+            successMessage.textContent = message || 'Login berhasil! Mengarahkan...';
+            successMessage.style.display = 'block';
+        }
+
+        // Fungsi untuk menampilkan loading
+        function showLoading() {
+            btnText.style.display = 'none';
+            loadingIndicator.style.display = 'block';
+        }
+
+        // Fungsi untuk menyembunyikan loading
+        function hideLoading() {
+            btnText.style.display = 'block';
+            loadingIndicator.style.display = 'none';
+        }
+
+        // Fungsi untuk menampilkan pesan error admin
+        function showAdminError(message) {
+            adminErrorMessage.textContent = message;
+            adminErrorMessage.style.display = 'block';
+            adminSuccessMessage.style.display = 'none';
+        }
+
+        // Fungsi untuk menampilkan pesan sukses admin
+        function showAdminSuccess(message) {
+            adminErrorMessage.style.display = 'none';
+            adminSuccessMessage.textContent = message;
+            adminSuccessMessage.style.display = 'block';
+            
+            // Sembunyikan pesan sukses setelah 3 detik
+            setTimeout(() => {
+                adminSuccessMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        // Fungsi untuk menampilkan panel admin
+        function showAdminPanel() {
+            loginContainer.style.display = 'none';
+            adminContainer.style.display = 'block';
+            updateStats();
+            renderUserList();
+        }
+
+        // Fungsi untuk menampilkan panel login
+        function showLoginPanel() {
+            adminContainer.style.display = 'none';
+            loginContainer.style.display = 'block';
+            currentEditUser = null;
+            isAddingNewUser = false;
+            editForm.classList.add('hidden');
+            usernameInput.value = '';
+            passwordInput.value = '';
+            showAdminSuccess('');
+            showAdminError('');
+        }
+
+        // Fungsi untuk memperbarui statistik
+        function updateStats() {
+            const userCount = Object.keys(credentials).length - 1; // Kurangi 1 untuk admin
+            totalUsers.textContent = userCount;
+            activeUsers.textContent = userCount;
+        }
+
+        // Fungsi untuk merender daftar user
+        function renderUserList() {
+            userList.innerHTML = '';
+            
+            for (const username in credentials) {
+                if (username === 'ppbhasy1234') continue; // Skip admin user dari daftar
+                
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <strong>${username}</strong>
+                        <small>Password: ${credentials[username].password}</small>
+                        <small>Link: ${credentials[username].link}</small>
+                    </div>
+                    <div class="user-actions">
+                        <button class="action-btn edit-user" data-username="${username}">Edit</button>
+                        <button class="action-btn delete-user" data-username="${username}">Hapus</button>
+                    </div>
+                `;
+                
+                userList.appendChild(userItem);
+            }
+            
+            // Tambahkan event listener untuk tombol edit dan hapus
+            document.querySelectorAll('.edit-user').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const username = this.getAttribute('data-username');
+                    editUser(username);
+                });
+            });
+            
+            document.querySelectorAll('.delete-user').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const username = this.getAttribute('data-username');
+                    deleteUser(username);
+                });
+            });
+        }
+
+        // Fungsi untuk mengedit user
+        function editUser(username) {
+            currentEditUser = username;
+            isAddingNewUser = false;
+            
+            editUsername.value = username;
+            editPassword.value = credentials[username].password;
+            editLink.value = credentials[username].link;
+            
+            editFormTitle.textContent = 'Edit User';
+            editForm.classList.remove('hidden');
+            
+            // Scroll ke form edit
+            editForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Fungsi untuk menghapus user
+        function deleteUser(username) {
+            if (confirm(`Apakah Anda yakin ingin menghapus user ${username}?`)) {
+                delete credentials[username];
+                saveDataToFirebase();
+                updateStats();
+                renderUserList();
+                showAdminSuccess(`User ${username} berhasil dihapus`);
+            }
+        }
+
+        // Fungsi untuk menambah user baru
+        function addNewUser() {
+            currentEditUser = null;
+            isAddingNewUser = true;
+            
+            editUsername.value = '';
+            editPassword.value = '';
+            editLink.value = '';
+            
+            editFormTitle.textContent = 'Tambah User Baru';
+            editForm.classList.remove('hidden');
+            
+            // Scroll ke form edit
+            editForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Fungsi untuk menyimpan perubahan user
+        function saveUser() {
+            const username = editUsername.value.trim();
+            const password = editPassword.value.trim();
+            const link = editLink.value.trim();
+            
+            if (!username || !password || !link) {
+                showAdminError('Semua field harus diisi!');
+                return;
+            }
+            
+            if (isAddingNewUser && credentials[username]) {
+                showAdminError('Username sudah ada!');
+                return;
+            }
+            
+            if (isAddingNewUser) {
+                // Tambah user baru
+                credentials[username] = { password, link };
+                showAdminSuccess(`User ${username} berhasil ditambahkan`);
+            } else {
+                // Edit user yang sudah ada
+                const oldUsername = currentEditUser;
+                
+                if (oldUsername !== username) {
+                    // Jika username berubah, hapus yang lama dan buat yang baru
+                    delete credentials[oldUsername];
+                }
+                
+                credentials[username] = { password, link };
+                showAdminSuccess(`User ${username} berhasil diperbarui`);
+            }
+            
+            saveDataToFirebase();
+            updateStats();
+            renderUserList();
+            editForm.classList.add('hidden');
+            currentEditUser = null;
+            isAddingNewUser = false;
+        }
+
+        // Event listener untuk form login
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            // Validasi input
+            if (!username || !password) {
+                showError('Username dan password harus diisi!');
+                return;
+            }
+            
+            // Tampilkan loading
+            showLoading();
+            
+            // Simulasi proses validasi
+            setTimeout(() => {
+                // Cek apakah username ada di database
+                if (credentials.hasOwnProperty(username)) {
+                    // Cek apakah password sesuai
+                    if (credentials[username].password === password) {
+                        // Login berhasil
+                        showSuccess();
+                        
+                        // Jika admin, tampilkan panel admin
+                        if (username === 'ppbhasy1234') {
+                            setTimeout(() => {
+                                showAdminPanel();
+                                hideLoading();
+                            }, 1000);
+                        } else {
+                            // Redirect ke link tujuan setelah 2 detik
+                            setTimeout(() => {
+                                window.location.href = credentials[username].link;
+                            }, 2000);
+                        }
+                    } else {
+                        // Password salah
+                        showError('Password salah!');
+                        hideLoading();
+                    }
+                } else {
+                    // Username tidak ditemukan
+                    showError('Username tidak ditemukan!');
+                    hideLoading();
+                }
+            }, 1000); // Simulasi waktu validasi
+        });
+
+        // Event listener untuk tombol tambah user
+        addUserBtn.addEventListener('click', addNewUser);
+
+        // Event listener untuk tombol logout
+        logoutBtn.addEventListener('click', function() {
+            showLoginPanel();
+            showAdminSuccess('');
+            showAdminError('');
+        });
+
+        // Event listener untuk tombol simpan user
+        saveUserBtn.addEventListener('click', saveUser);
+
+        // Event listener untuk tombol batal edit
+        cancelEditBtn.addEventListener('click', function() {
+            editForm.classList.add('hidden');
+            currentEditUser = null;
+            isAddingNewUser = false;
+        });
+
+        // Inisialisasi aplikasi
+        function initApp() {
+            // Monitor status koneksi Firebase
+            database.ref('.info/connected').on('value', (snapshot) => {
+                updateFirebaseStatus(snapshot.val() === true);
+            });
+            
+            // Muat data dari Firebase
+            loadDataFromFirebase();
+            
+            // Inisialisasi statistik
+            updateStats();
+        }
+
+        // Jalankan inisialisasi ketika halaman dimuat
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
